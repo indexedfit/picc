@@ -61,14 +61,15 @@ export default function App() {
     })();
   }, []);
 
-  if (!helia || !manifest) return (
-    <div className="flex items-center justify-center h-screen">
-      <div className="text-center">
-        <div className="text-gray-600 mb-2">Starting node</div>
-        <div className="animate-pulse">•••</div>
+  if (!helia || !manifest)
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="text-gray-600 mb-2">Starting node</div>
+          <div className="animate-pulse">•••</div>
+        </div>
       </div>
-    </div>
-  );
+    );
 
   async function onManifestChange(next: Manifest, newCid: string | null) {
     setManifest(next);
@@ -80,12 +81,22 @@ export default function App() {
       <header className="bg-white border-b border-gray-200 px-4 py-3">
         <div className="flex items-center justify-between max-w-screen-2xl mx-auto">
           <h1 className="text-xl font-semibold">picc.fit</h1>
-          <button
-            onClick={() => setPairOpen(true)}
-            className="btn btn-secondary"
-          >
-            Pair Device
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setPairOpen(true)}
+              className="btn btn-secondary"
+            >
+              Pair Device
+            </button>
+            <a
+              href="https://indexed.fit"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-gray-600 hover:text-gray-900"
+            >
+              [i]indexed.fit
+            </a>
+          </div>
         </div>
       </header>
 
