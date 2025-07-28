@@ -85,9 +85,38 @@ export async function initHelia(): Promise<HeliaContext> {
   const cfg = await loadConfig();
 
   console.log("Opening OPFS blockstore...");
-  const store = new OPFSBlockstore(cfg.blockstoreName);
-  await store.open();
-  console.log("OPFS blockstore opened successfully");
+  
+  // Debug what's actually available in Safari iOS
+  console.log("Navigator storage:", typeof navigator.storage);
+  console.log("IndexedDB:", typeof indexedDB);
+  console.log("localStorage:", typeof localStorage);
+  console.log("sessionStorage:", typeof sessionStorage);
+  console.log("WebSQL (deprecated):", typeof (window as any).openDatabase);
+  console.log("Cache API:", typeof caches);
+  
+  // Safari iOS doesn't have navigator.storage at all
+  if (typeof navigator.storage === 'undefined') {
+    throw new Error("Safari iOS: navigator.storage completely missing - OPFS not supported");
+  }
+  
+  // Check if OPFS is actually available
+  if (!navigator.storage?.getDirectory) {
+    throw new Error("OPFS not supported: navigator.storage.getDirectory missing");
+  }
+  
+  let store;
+  try {
+    // Test OPFS access first
+    const opfsRoot = await navigator.storage.getDirectory();
+    console.log("OPFS root accessible:", opfsRoot);
+    
+    store = new OPFSBlockstore(cfg.blockstoreName);
+    await store.open();
+    console.log("OPFS blockstore opened successfully");
+  } catch (error) {
+    console.error("OPFS blockstore failed:", error);
+    throw new Error(`OPFS blockstore failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
 
   console.log("Setting up delegated routing...");
   const delegatedClient = createDelegatedRoutingV1HttpApiClient('https://delegated-ipfs.dev');
