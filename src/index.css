@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Clean monospace aesthetic */
+body {
+    @apply font-mono text-gray-800;
+    background: #fafafa;
+}
+
+/* Clean containers */
+.box {
+    @apply bg-white border border-gray-200 rounded;
+}
+
+/* Minimal button styles */
+.btn {
+    @apply inline-flex items-center justify-center px-3 py-1.5 text-sm font-mono border border-gray-300 bg-white hover:bg-gray-50 rounded;
+    transition: all 0.1s;
+}
+.btn:hover {
+    @apply border-gray-400;
+}
+.btn-primary {
+    @apply bg-gray-900 text-white border-gray-900 hover:bg-gray-800;
+}
+.btn-secondary {
+    @apply bg-gray-50 text-gray-700 hover:bg-gray-100;
+}
+
+/* Image container styling */
+.img-container {
+    @apply bg-white rounded overflow-hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.img-container img,
+.img-container video {
+    @apply w-full h-24 sm:h-32 object-cover;
+}
+
+/* Folder tree styling */
+.folder-tree {
+    @apply bg-gray-50 border-r border-gray-200;
+}
