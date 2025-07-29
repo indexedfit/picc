@@ -13,9 +13,9 @@ export interface AppConfig {
 const DEFAULT_CONFIG: AppConfig = {
   blockstoreName: "bs",
   relayAddrs: [
-    // Public circuit relay v2 nodes
-    "/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
-    "/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
+    "/dns4/relay.localhost/tcp/443/wss/p2p/12D3KooWJ5izG8rXB95W6xFp1tFtAAoQ1Df3vVyQ7XmA3Bg1gHCN",
+    // "these will be used for circuit relay reservation"
+    // lol
   ],
   pubsubNamespace: "gallery-sync",
 };
