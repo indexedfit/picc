@@ -3,6 +3,7 @@
 // Works without webrtc-star and fixes `transport.listenFilter` error.
 
 import { createHelia } from "helia";
+import { bitswap } from "@helia/block-brokers";
 import { OPFSBlockstore } from "blockstore-opfs";
 import {
   createDelegatedRoutingV1HttpApiClient,
@@ -205,6 +206,8 @@ export async function initHelia(): Promise<HeliaContext> {
   const helia = await createHelia({
     blockstore: store,
     libp2p: libp2p as any,
+    // Enable block exchange across peers
+    blockBrokers: [bitswap()],
   });
 
   return { helia: helia as any };

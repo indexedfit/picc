@@ -1,11 +1,27 @@
 import type { Helia } from "helia";
 import { loadConfig } from "./config";
-import { loadRoot } from "./identity";
+import { loadRoot, loadAllowedPeers } from "./identity";
+
+export interface SyncStatus {
+  topic: string;
+  peerId: string;
+  connectedPeers: string[];
+  lastAnnounced?: { cid: string; at: number };
+  lastRemote?: { cid: string; from: string; at: number };
+  publishedCount: number;
+  receivedCount: number;
+}
+
+export interface SyncHandle {
+  announceNow(): Promise<void>;
+  getStatus(): SyncStatus;
+  subscribe(fn: (s: SyncStatus) => void): () => void;
+}
 
 export async function startSync(
   helia: Helia,
   onRemoteRoot: (cid: string) => void,
-): Promise<void> {
+): Promise<SyncHandle> {
   const cfg = await loadConfig();
   const topic = `${cfg.pubsubNamespace}`;
   const ps = helia.libp2p.services.pubsub as any;
@@ -13,8 +29,32 @@ export async function startSync(
   await ps.subscribe(topic);
   console.log(`Subscribed to sync topic: ${topic}`);
 
-  // Track seen CIDs to avoid processing duplicates
-  const seenCids = new Set<string>();
+  // --- Status state + observers
+  const observers = new Set<(s: SyncStatus) => void>();
+  const status: SyncStatus = {
+    topic,
+    peerId: helia.libp2p.peerId.toString(),
+    connectedPeers: [],
+    publishedCount: 0,
+    receivedCount: 0,
+  };
+  function snapshot(): SyncStatus {
+    return { ...status, connectedPeers: [...status.connectedPeers] };
+  }
+  function emit() {
+    const s = snapshot();
+    observers.forEach(fn => fn(s));
+  }
+  function refreshConnections() {
+    status.connectedPeers = helia.libp2p
+      .getConnections()
+      .map((c: any) => c.remotePeer?.toString?.())
+      .filter(Boolean);
+    emit();
+  }
+
+  // Track newest root per peer to avoid regressions
+  const latestByPeer = new Map<string, { cid: string; ts: number }>();
 
   ps.addEventListener("message", (evt: any) => {
     try {
@@ -25,15 +65,28 @@ export async function startSync(
         peerId?: string;
         timestamp?: number;
       };
-      
-      if (msg.type === "root" && msg.cid && !seenCids.has(msg.cid)) {
-        console.log(`Received remote root: ${msg.cid}`);
-        seenCids.add(msg.cid);
-        onRemoteRoot(msg.cid);
-      } else if (msg.type === "request") {
-        // Respond to sync requests immediately
-        setTimeout(announce, 100);
-      }
+
+      const from: string | undefined = evt?.detail?.from?.toString?.();
+      if (!from) return;
+
+      // Only accept from allowed peers
+      loadAllowedPeers().then((allowed) => {
+        if (!allowed.has(from)) return;
+
+        if (msg.type === "root" && msg.cid) {
+          const ts = msg.timestamp ?? 0;
+          const prev = latestByPeer.get(from);
+          if (!prev || ts > prev.ts) {
+            latestByPeer.set(from, { cid: msg.cid, ts });
+            status.receivedCount += 1;
+            status.lastRemote = { cid: msg.cid, from, at: Date.now() };
+            emit();
+            onRemoteRoot(msg.cid);
+          }
+        } else if (msg.type === "request") {
+          setTimeout(announce, 100);
+        }
+      }).catch(() => {/* ignore */});
     } catch (e) {
       console.warn("Failed to parse sync message:", e);
     }
@@ -42,6 +95,7 @@ export async function startSync(
   // Listen for new peer connections to request sync
   helia.libp2p.addEventListener("peer:connect", async () => {
     console.log("New peer connected, requesting sync");
+    refreshConnections();
     try {
       const payload = new TextEncoder().encode(
         JSON.stringify({ type: "request", timestamp: Date.now() })
@@ -50,6 +104,9 @@ export async function startSync(
     } catch (e) {
       console.warn("Failed to request sync:", e);
     }
+  });
+  helia.libp2p.addEventListener("peer:disconnect", () => {
+    refreshConnections();
   });
 
   async function announce() {
@@ -66,6 +123,9 @@ export async function startSync(
       );
       await ps.publish(topic, payload);
       console.log(`Published root: ${root.manifestCid}`);
+      status.publishedCount += 1;
+      status.lastAnnounced = { cid: root.manifestCid, at: Date.now() };
+      emit();
     } catch (e: any) {
       const msg = String(e?.message || e);
       if (!/NoPeersSubscribedToTopic/i.test(msg)) {
@@ -88,4 +148,18 @@ export async function startSync(
       }
     });
   }
+
+  // Initial connections snapshot
+  refreshConnections();
+
+  return {
+    announceNow: announce,
+    getStatus: () => snapshot(),
+    subscribe(fn) {
+      observers.add(fn);
+      // immediate call
+      fn(snapshot());
+      return () => observers.delete(fn);
+    }
+  };
 }

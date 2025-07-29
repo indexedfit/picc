@@ -43,9 +43,10 @@ export default function FilePicker({ helia, onAdded }: Props) {
         // Add the file content directly
         const cid = await fs.addBytes(uint8Array);
         
+        const cidStr = cid.toString();
         results.push({
-          id: crypto.randomUUID(),
-          cid: cid.toString(),
+          id: cidStr,             // CRDT-friendly: use CID as stable ID
+          cid: cidStr,
           name: file.name,
           size: file.size,
           mime: file.type || undefined,

@@ -91,13 +91,27 @@ export async function saveManifestToOpfs(manifest: Manifest): Promise<void> {
   await writeJson(PATH, FILE, manifest);
 }
 
+// Ensure deterministic JSON for CID stability.
+function stableStringify(manifest: Manifest): string {
+  const sortObj = (o: any): any => {
+    if (Array.isArray(o)) return o.map(sortObj);
+    if (o && typeof o === 'object') {
+      return Object.fromEntries(
+        Object.keys(o).sort().map(k => [k, sortObj(o[k])])
+      );
+    }
+    return o;
+  };
+  return JSON.stringify(sortObj(manifest));
+}
+
 // Add manifest JSON to IPFS to obtain a CID; also persist root CID in OPFS.
 export async function persistManifestToIpfs(
   helia: Helia,
   manifest: Manifest,
 ): Promise<string> {
   const fs = createUnixfs(helia);
-  const bytes = new TextEncoder().encode(JSON.stringify(manifest));
+  const bytes = new TextEncoder().encode(stableStringify(manifest));
   const cid = await fs.addBytes(bytes);
   await saveRoot(cid.toString());
   return cid.toString();

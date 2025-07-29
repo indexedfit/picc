@@ -13,11 +13,14 @@ import PairingDialog from "./components/PairingDialog";
 import PeerManager from "./components/PeerManager";
 import GalleryView from "./components/GalleryView";
 import { startSync } from "./lib/sync";
+import type { SyncHandle } from "./lib/sync";
+import SyncPanel from "./components/SyncPanel";
 
 export default function App() {
   const [helia, setHelia] = useState<any>(null);
   const [pairOpen, setPairOpen] = useState(false);
   const [manifest, setManifest] = useState<Manifest | null>(null);
+  const [syncHandle, setSyncHandle] = useState<SyncHandle | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -38,7 +41,7 @@ export default function App() {
       }
 
       // Start pubsub sync – on remote root, fetch & merge
-      await startSync(helia, async (remoteCid) => {
+      const handle = await startSync(helia, async (remoteCid) => {
         try {
           const dec = new TextDecoder();
           let text = "";
@@ -54,10 +57,13 @@ export default function App() {
           const cid = await persistManifestToIpfs(helia, merged);
           await saveRoot(cid);
           setManifest(merged);
+          // announce merged state to speed up convergence
+          handle.announceNow().catch(() => {});
         } catch (e) {
           console.warn("Failed to merge remote manifest", e);
         }
       });
+      setSyncHandle(handle);
     })();
   }, []);
 
@@ -73,7 +79,11 @@ export default function App() {
 
   async function onManifestChange(next: Manifest, newCid: string | null) {
     setManifest(next);
-    if (newCid) await saveRoot(newCid);
+    if (newCid) {
+      await saveRoot(newCid);
+      // publish right away
+      syncHandle?.announceNow().catch(() => {});
+    }
   }
 
   return (
@@ -105,7 +115,7 @@ export default function App() {
       </main>
 
       <footer className="border-t border-gray-200 mt-8 p-4">
-        <div className="max-w-screen-2xl mx-auto grid md:grid-cols-2 gap-4">
+        <div className="max-w-screen-2xl mx-auto grid md:grid-cols-3 gap-4">
           <div className="box p-4">
             <PeerManager helia={helia} />
           </div>
@@ -116,6 +126,9 @@ export default function App() {
               <li>• Media blocks: OPFS blockstore</li>
               <li>• Network: libp2p + circuit relay</li>
             </ul>
+          </div>
+          <div className="box p-4">
+            {syncHandle && <SyncPanel helia={helia} handle={syncHandle} />}
           </div>
         </div>
       </footer>

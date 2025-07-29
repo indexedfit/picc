@@ -8,14 +8,13 @@ import {
   loadRoot,
   saveRoot,
 } from "../lib/identity";
+import { loadConfig } from "../lib/config";
 
 interface PairPayload {
-  addr: string; // peer multiaddr
-  root?: string | null; // optional manifest root CID
-}
-
-function createPairPayload(addr: string, root?: string | null): string {
-  return JSON.stringify({ addr, root } satisfies PairPayload);
+  peerId: string;
+  addrs: string[];
+  topic: string;
+  root?: string | null;
 }
 
 export default function PairingDialog({
@@ -31,13 +30,30 @@ export default function PairingDialog({
   const scanRef = useRef<HTMLDivElement>(null);
   const [scanning, setScanning] = useState(false);
 
+  function pickDialableAddrs(addrs: string[]): string[] {
+    return addrs
+      .map(String)
+      .filter(a =>
+        a.includes('/p2p-circuit') || a.includes('/wss/') || a.includes('/ws/')
+      );
+  }
+
   useEffect(() => {
     if (!open) return;
-    const addrs = helia.libp2p.getMultiaddrs();
-    const addr = addrs[0]?.toString() ?? "";
     (async () => {
-      const root = (await loadRoot()).manifestCid ?? null;
-      await QRCode.toCanvas(canvasRef.current, createPairPayload(addr, root));
+      // let relays populate
+      await new Promise(r => setTimeout(r, 4000));
+      const cfg = await loadConfig();
+      const topic = cfg.pubsubNamespace;
+      const addrs = helia.libp2p.getMultiaddrs().map(String);
+      const payload: PairPayload = {
+        peerId: helia.libp2p.peerId.toString(),
+        addrs: pickDialableAddrs(addrs),
+        topic,
+        root: (await loadRoot()).manifestCid ?? null,
+      };
+      console.log("Pair QR payload", payload);
+      await QRCode.toCanvas(canvasRef.current, JSON.stringify(payload));
     })();
   }, [open, helia]);
 
@@ -53,19 +69,26 @@ export default function PairingDialog({
       try {
         const payload = JSON.parse(text) as PairPayload;
         const peers = await loadAllowedPeers();
-        const id = payload.addr.split("/p2p/").pop() ?? "";
-        peers.add(id);
+        const id =
+          payload.peerId ??
+          (payload.addrs?.[0]?.split("/p2p/").pop() ?? "");
+        if (id) peers.add(id);
         await saveAllowedPeers(peers);
 
         // Adopt remote root if we don't have one
         const localRoot = (await loadRoot()).manifestCid;
-        if (!localRoot && payload.root) {
-          await saveRoot(payload.root);
+        if (!localRoot && payload.root) await saveRoot(payload.root);
+
+        // Immediately dial all addresses
+        for (const a of payload.addrs ?? []) {
+          try { await helia.libp2p.dial(a as any); } catch {}
         }
 
-        // Immediately dial the peer
+        // Publish a sync request on the topic
         try {
-          await helia.libp2p.dial(payload.addr as any);
+          const ps = helia.libp2p.services.pubsub as any;
+          const msg = new TextEncoder().encode(JSON.stringify({ type: "request", timestamp: Date.now() }));
+          await ps.publish(payload.topic ?? "gallery-sync", msg);
         } catch {}
 
         alert("Paired!");
