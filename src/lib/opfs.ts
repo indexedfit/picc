@@ -1,10 +1,9 @@
 // src/lib/opfs.ts
 // Minimal OPFS helpers for JSON/text persistence with clean, explicit paths.
-// Everything is persisted under /opfs/app/opfs-gallery/<...>
+
+import { OPFS_DIR_NAME } from "./constants";
 
 export type JsonValue = unknown;
-
-const APP_DIR = "opfs-gallery";
 
 // --- worker rpc (only used on WebKit fallback) ---
 let _worker: Worker | null = null;
@@ -45,7 +44,7 @@ function _callWorker(msg: Record<string, unknown>): Promise<void> {
 // --- directory helpers ---
 async function getAppDir(): Promise<FileSystemDirectoryHandle> {
   const root = await navigator.storage.getDirectory();
-  return root.getDirectoryHandle(APP_DIR, { create: true });
+  return root.getDirectoryHandle(OPFS_DIR_NAME, { create: true });
 }
 
 export async function getDir(

@@ -8,19 +8,17 @@ import {
   loadRootManifestFromIpfs,
   mergeManifests,
 } from "./lib/manifest";
-import { saveRoot } from "./lib/identity";
+// import { saveRoot } from "./lib/identity";
 import PairingDialog from "./components/PairingDialog";
 import PeerManager from "./components/PeerManager";
 import GalleryView from "./components/GalleryView";
-import { startSync } from "./lib/sync";
-import type { SyncHandle } from "./lib/sync";
-import SyncPanel from "./components/SyncPanel";
+
+// import SyncPanel from "./components/SyncPanel";
 
 export default function App() {
   const [helia, setHelia] = useState<any>(null);
   const [pairOpen, setPairOpen] = useState(false);
   const [manifest, setManifest] = useState<Manifest | null>(null);
-  const [syncHandle, setSyncHandle] = useState<SyncHandle | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -36,34 +34,9 @@ export default function App() {
         const merged = mergeManifests(local, fresher);
         await saveManifestToOpfs(merged);
         const cid = await persistManifestToIpfs(helia, merged); // normalize
-        await saveRoot(cid.toString());
+        // await saveRoot(cid.toString());
         setManifest(merged);
       }
-
-      // Start pubsub sync – on remote root, fetch & merge
-      const handle = await startSync(helia, async (remoteCid) => {
-        try {
-          const dec = new TextDecoder();
-          let text = "";
-          for await (const chunk of (await import("@helia/unixfs"))
-            .unixfs(helia)
-            .cat(remoteCid as any)) {
-            text += dec.decode(chunk, { stream: true });
-          }
-          const remote = JSON.parse(text) as Manifest;
-          const current = await loadManifest();
-          const merged = mergeManifests(current, remote);
-          await saveManifestToOpfs(merged);
-          const cid = await persistManifestToIpfs(helia, merged);
-          await saveRoot(cid);
-          setManifest(merged);
-          // announce merged state to speed up convergence
-          handle.announceNow().catch(() => {});
-        } catch (e) {
-          console.warn("Failed to merge remote manifest", e);
-        }
-      });
-      setSyncHandle(handle);
     })();
   }, []);
 
@@ -80,9 +53,10 @@ export default function App() {
   async function onManifestChange(next: Manifest, newCid: string | null) {
     setManifest(next);
     if (newCid) {
-      await saveRoot(newCid);
+      console.log("manifest change to new CID: ", newCid);
+      // await saveRoot(newCid);
       // publish right away
-      syncHandle?.announceNow().catch(() => {});
+      // ...
     }
   }
 
@@ -126,9 +100,6 @@ export default function App() {
               <li>• Media blocks: OPFS blockstore</li>
               <li>• Network: libp2p + circuit relay</li>
             </ul>
-          </div>
-          <div className="box p-4">
-            {syncHandle && <SyncPanel helia={helia} handle={syncHandle} />}
           </div>
         </div>
       </footer>

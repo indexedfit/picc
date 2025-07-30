@@ -1,11 +1,12 @@
 // Manifest manages the logical gallery (list of files).
 // It lives in OPFS as JSON for fast reload, and is also added to IPFS to get a CID.
 // The CID is what we exchange with peers during sync/pubsub.
+//
+// See if we can slot in WNFS or other solution here, this can get messy with versioning.
 
 import { unixfs as createUnixfs } from "@helia/unixfs";
 import type { Helia } from "helia";
 import { readJson, writeJson } from "./opfs";
-import { saveRoot, loadRoot } from "./identity";
 
 const PATH = ["state"];
 const FILE = "manifest.json";
@@ -41,7 +42,7 @@ export interface Manifest {
 export async function createEmptyManifest(): Promise<Manifest> {
   const m: Manifest = { version: 1, files: {} };
   await writeJson(PATH, FILE, m);
-  await saveRoot(null);
+  // await saveRoot(null);
   return m;
 }
 
@@ -52,12 +53,12 @@ export async function loadManifest(): Promise<Manifest> {
 }
 
 export function mergeManifests(base: Manifest, incoming: Manifest): Manifest {
-  const merged: Manifest = { 
-    version: 1, 
+  const merged: Manifest = {
+    version: 1,
     files: { ...base.files },
-    folders: { ...(base.folders || {}) }
+    folders: { ...(base.folders || {}) },
   };
-  
+
   // Merge files
   for (const [id, inc] of Object.entries(incoming.files)) {
     const cur = merged.files[id];
@@ -69,7 +70,7 @@ export function mergeManifests(base: Manifest, incoming: Manifest): Manifest {
     const incTs = Date.parse(inc.updatedAt ?? inc.addedAt);
     if (incTs > curTs) merged.files[id] = inc;
   }
-  
+
   // Merge folders
   if (incoming.folders) {
     for (const [path, inc] of Object.entries(incoming.folders)) {
@@ -83,7 +84,7 @@ export function mergeManifests(base: Manifest, incoming: Manifest): Manifest {
       if (incTs > curTs) merged.folders![path] = inc;
     }
   }
-  
+
   return merged;
 }
 
@@ -95,9 +96,11 @@ export async function saveManifestToOpfs(manifest: Manifest): Promise<void> {
 function stableStringify(manifest: Manifest): string {
   const sortObj = (o: any): any => {
     if (Array.isArray(o)) return o.map(sortObj);
-    if (o && typeof o === 'object') {
+    if (o && typeof o === "object") {
       return Object.fromEntries(
-        Object.keys(o).sort().map(k => [k, sortObj(o[k])])
+        Object.keys(o)
+          .sort()
+          .map((k) => [k, sortObj(o[k])]),
       );
     }
     return o;
@@ -113,7 +116,7 @@ export async function persistManifestToIpfs(
   const fs = createUnixfs(helia);
   const bytes = new TextEncoder().encode(stableStringify(manifest));
   const cid = await fs.addBytes(bytes);
-  await saveRoot(cid.toString());
+  // await saveRoot(cid.toString());
   return cid.toString();
 }
 
@@ -122,8 +125,10 @@ export async function persistManifestToIpfs(
 export async function loadRootManifestFromIpfs(
   helia: Helia,
 ): Promise<Manifest | null> {
-  const { manifestCid } = await loadRoot();
-  if (!manifestCid) return null;
+  // const { manifestCid } = await loadRoot();
+  let manifestCid;
+  // if (!manifestCid)
+  return null;
   try {
     const fs = createUnixfs(helia);
     let text = "";

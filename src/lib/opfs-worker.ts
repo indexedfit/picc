@@ -2,6 +2,8 @@
 // src/lib/opfs-worker.ts
 // Dedicated worker used only on WebKit to write via SyncAccessHandle.
 
+import { OPFS_DIR_NAME } from "./constants";
+
 type Msg =
   | {
       id: number;
@@ -16,12 +18,10 @@ type Reply =
   | { id: number; ok: true }
   | { id: number; ok: false; error: string };
 
-const APP_DIR = "opfs-gallery";
-
 async function getAppDir(): Promise<FileSystemDirectoryHandle> {
   // navigator.storage is available inside Dedicated Workers where OPFS is supported
   const root = await (navigator as any).storage.getDirectory();
-  return root.getDirectoryHandle(APP_DIR, { create: true });
+  return root.getDirectoryHandle(OPFS_DIR_NAME, { create: true });
 }
 
 async function getDir(path: string[]): Promise<FileSystemDirectoryHandle> {
