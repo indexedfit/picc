@@ -3,18 +3,23 @@ import { thumbUrl } from "../utils/opfs";
 import type { AlbumDoc } from "../yjs/albums";
 import type { PicMeta } from "../types";
 import { View } from "./ViewToggle";
+interface AlbumGridProps {
+  album: AlbumDoc;
+  view: View;
+  selectedPics: Set<string>;
+  onSelectionChange: (selection: Set<string>) => void;
+}
 
-export function AlbumGrid({ album, view }: { album: AlbumDoc; view: View }) {
+export function AlbumGrid({ album, view, selectedPics, onSelectionChange }: AlbumGridProps) {
   const [pics, setPics] = useState<PicMeta[]>(album.pics.toArray());
   useEffect(() => {
     const obs = () => setPics(album.pics.toArray());
     album.pics.observe(obs);
     return () => album.pics.unobserve(obs);
   }, [album]);
-
   if (view === "list") {
     return (
-      <table className="w-full text-sm">
+      <table className="album-list">
         <tbody>
           {pics.map((p) => (
             <Row key={p.cid} pic={p} />
@@ -23,46 +28,74 @@ export function AlbumGrid({ album, view }: { album: AlbumDoc; view: View }) {
       </table>
     );
   }
-
   return (
-    <div
-      className="grid gap-2"
-      style={{ gridTemplateColumns: "repeat(auto-fill, minmax(128px, 1fr))" }}
-    >
+    <div className="album-grid">
       {pics.map((p) => (
-        <Thumb key={p.cid} pic={p} />
+        <Thumb 
+          key={p.cid} 
+          pic={p} 
+          selected={selectedPics.has(p.cid)}
+          onToggle={() => {
+            const newSelection = new Set(selectedPics);
+            if (newSelection.has(p.cid)) {
+              newSelection.delete(p.cid);
+            } else {
+              newSelection.add(p.cid);
+            }
+            onSelectionChange(newSelection);
+          }}
+          selectedPics={selectedPics}
+        />
       ))}
     </div>
   );
 }
-
 function Row({ pic }: { pic: PicMeta }) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     thumbUrl(pic.cid).then(setUrl);
   }, [pic.cid]);
   return (
-    <tr className="border-b last:border-0">
-      <td className="py-1 w-16">
-        {url && <img src={url} className="w-12 h-12 object-cover rounded" />}
+    <tr className="album-list-row">
+      <td className="album-list-thumb">
+        {url && <img src={url} className="album-list-thumb-img" />}
       </td>
-      <td>{pic.name}</td>
-      <td className="text-right text-gray-500">
+      <td className="album-list-name">{pic.name}</td>
+      <td className="album-list-date">
         {new Date(pic.ts).toLocaleDateString()}
       </td>
     </tr>
   );
 }
+interface ThumbProps {
+  pic: PicMeta;
+  selected: boolean;
+  onToggle: () => void;
+  selectedPics: Set<string>;
+}
 
-function Thumb({ pic }: { pic: PicMeta }) {
+function Thumb({ pic, selected, onToggle, selectedPics }: ThumbProps) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     thumbUrl(pic.cid).then(setUrl);
   }, [pic.cid]);
   return (
-    <div className="aspect-square bg-gray-200 rounded overflow-hidden relative">
-      {url && (
-        <img src={url} alt={pic.name} className="w-full h-full object-cover" />
+    <div 
+      className={`album-grid-item ${selected ? 'selected' : ''}`}
+      onClick={onToggle}
+      draggable={selectedPics.size > 0}
+      onDragStart={(e) => {
+        if (selectedPics.size > 0) {
+          const cids = Array.from(selectedPics);
+          e.dataTransfer?.setData('text/plain', JSON.stringify(cids));
+        }
+      }}
+    >
+      {url && <img className="img-thumb" src={url} alt={pic.name} />}
+      {selected && (
+        <div className="selection-indicator">
+          <div className="checkmark">✓</div>
+        </div>
       )}
     </div>
   );

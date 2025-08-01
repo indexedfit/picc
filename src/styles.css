@@ -1,0 +1,421 @@
+html,
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: ui-monospace, Menlo, monospace;
+    background: #f6f7f8;
+    color: #111;
+    font-size: 14px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+button {
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: inherit;
+}
+
+button:focus {
+    outline: 2px solid #4b9;
+    outline-offset: -1px;
+}
+
+input {
+    font-family: inherit;
+    font-size: inherit;
+}
+
+.img-thumb {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+}
+
+/* Album selector styles */
+.album-item {
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: all 0.15s ease;
+}
+
+.album-item:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.album-item.active {
+    background: #e8f4f8;
+    border-left-color: #0066cc;
+    font-weight: 500;
+}
+
+.album-item.drag-over {
+    background: #e8f4f8;
+    border-left-color: #4caf50;
+}
+
+.album-input {
+    width: 100%;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #ddd;
+    background: white;
+    font-size: 12px;
+    transition: border-color 0.15s ease;
+}
+
+.album-input:focus {
+    outline: none;
+    border-color: #0066cc;
+}
+
+.album-add-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 12px;
+    color: #0066cc;
+    transition: opacity 0.15s ease;
+}
+
+.album-add-btn:hover {
+    opacity: 0.7;
+}
+
+/* Chat styles */
+.chat-button {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    width: 3rem;
+    height: 3rem;
+    background: #0066cc;
+    color: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 40;
+}
+
+.chat-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.chat-panel {
+    position: fixed;
+    bottom: 5rem;
+    right: 1rem;
+    width: 320px;
+    height: 400px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    z-index: 40;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    font-size: 13px;
+}
+
+.chat-message {
+    margin-bottom: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    max-width: 80%;
+}
+
+.chat-message.me {
+    margin-left: auto;
+    background: #e8f4f8;
+    text-align: right;
+}
+
+.chat-message.other {
+    background: #f0f0f0;
+}
+
+.chat-input-area {
+    border-top: 1px solid #ddd;
+    padding: 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.chat-input {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 0.25rem;
+    font-size: 13px;
+    transition: border-color 0.15s ease;
+}
+
+.chat-input:focus {
+    outline: none;
+    border-color: #0066cc;
+}
+
+.chat-send-btn {
+    padding: 0.5rem 1rem;
+    background: #0066cc;
+    color: white;
+    border-radius: 0.25rem;
+    font-size: 13px;
+    font-weight: 500;
+    transition: opacity 0.15s ease;
+}
+
+.chat-send-btn:hover {
+    opacity: 0.85;
+}
+
+/* Layout styles */
+.app-container {
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+}
+
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.content-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+/* Header styles */
+.header {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e0e0e0;
+    background: white;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Sidebar styles */
+.sidebar {
+    width: 180px;
+    flex-shrink: 0;
+    border-right: 1px solid #e0e0e0;
+    background: white;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    padding: 0.75rem;
+    font-weight: 500;
+    border-bottom: 1px solid #e0e0e0;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #666;
+}
+
+/* Upload button styles */
+.upload-button {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 0.25rem;
+    background: white;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 13px;
+    transition: all 0.15s ease;
+}
+
+.upload-button:hover {
+    background: #f5f5f5;
+    border-color: #bbb;
+}
+
+.upload-button:active {
+    transform: scale(0.98);
+}
+
+.upload-progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.5rem;
+    height: 0.25rem;
+    background: #e0e0e0;
+    border-radius: 0.125rem;
+    overflow: hidden;
+}
+
+.upload-progress-bar {
+    height: 100%;
+    background: #0066cc;
+    transition: width 0.3s ease;
+}
+
+/* View toggle styles */
+.view-toggle {
+    display: flex;
+    border: 1px solid #ddd;
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+
+.view-toggle-btn {
+    padding: 0.375rem 0.5rem;
+    background: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.view-toggle-btn:not(:last-child) {
+    border-right: 1px solid #ddd;
+}
+
+.view-toggle-btn:hover {
+    background: #f5f5f5;
+}
+
+.view-toggle-btn.active {
+    background: #e8f4f8;
+    color: #0066cc;
+}
+
+/* Grid styles */
+.album-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.album-grid-item {
+    aspect-ratio: 1;
+    border-radius: 0.375rem;
+    overflow: hidden;
+    background: #f0f0f0;
+    position: relative;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.album-grid-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.album-grid-item.selected {
+    border: 2px solid #0066cc;
+    box-shadow: 0 0 0 1px #0066cc;
+}
+
+.selection-indicator {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: #0066cc;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.checkmark {
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* Image viewer styles */
+.image-actions {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.album-grid-item:hover .image-actions {
+    opacity: 1;
+}
+
+.image-action-btn {
+    width: 2rem;
+    height: 2rem;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.image-action-btn:hover {
+    background: white;
+    transform: scale(1.05);
+}
+
+/* List view styles */
+.album-list {
+    width: 100%;
+    font-size: 13px;
+}
+
+.album-list-row {
+    border-bottom: 1px solid #e0e0e0;
+    transition: background-color 0.15s ease;
+}
+
+.album-list-row:hover {
+    background: #f9f9f9;
+}
+
+.album-list-row:last-child {
+    border-bottom: none;
+}
+
+.album-list-thumb {
+    width: 3.5rem;
+    padding: 0.5rem 0.5rem 0.5rem 0;
+}
+
+.album-list-thumb-img {
+    width: 3rem;
+    height: 3rem;
+    object-fit: cover;
+    border-radius: 0.25rem;
+}
+
+.album-list-name {
+    padding: 0.5rem 0;
+}
+
+.album-list-date {
+    text-align: right;
+    color: #666;
+    padding: 0.5rem 0;
+}

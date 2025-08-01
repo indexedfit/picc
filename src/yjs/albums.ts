@@ -21,6 +21,7 @@ export interface AlbumDoc {
 export function useAlbums(): AlbumsHook {
   const [ready, setReady] = useState(false);
   const [currentId, setCurrentId] = useState<string>("all");
+  const [, forceUpdate] = useState({});
 
   const state = useMemo(() => {
     const doc = new Y.Doc();
@@ -58,6 +59,12 @@ export function useAlbums(): AlbumsHook {
 
     return { doc, albumsMap, albumFromKey, getAllMeta };
   }, []);
+
+  useEffect(() => {
+    const observer = () => forceUpdate({});
+    state.albumsMap.observe(observer);
+    return () => state.albumsMap.unobserve(observer);
+  }, [state.albumsMap]);
 
   const albums = state.getAllMeta();
   const current = state.albumFromKey(currentId);

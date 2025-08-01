@@ -10,15 +10,15 @@ export function ViewToggle({
   setView: (v: View) => void;
 }) {
   return (
-    <div className="flex">
+    <div className="view-toggle">
       <button
-        className={`p-1 ${view === "grid" ? "text-blue-600" : ""}`}
+        className={`view-toggle-btn ${view === "grid" ? "active" : ""}`}
         onClick={() => setView("grid")}
       >
         <LayoutGrid size={18} />
       </button>
       <button
-        className={`p-1 ${view === "list" ? "text-blue-600" : ""}`}
+        className={`view-toggle-btn ${view === "list" ? "active" : ""}`}
         onClick={() => setView("list")}
       >
         <List size={18} />

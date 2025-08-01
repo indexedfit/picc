@@ -82,14 +82,14 @@ export function UploadButton({ album }: { album: AlbumDoc }) {
       />
       <button
         onClick={() => inputRef.current?.click()}
-        className="border px-3 py-1 rounded hover:bg-gray-100 active:scale-95 flex items-center gap-1"
+        className="upload-button"
       >
         <UploadIcon size={16} /> Upload
       </button>
       {pendingArr.length > 0 && (
-        <div className="absolute left-0 right-0 -bottom-2 h-1 bg-gray-200 rounded overflow-hidden">
+        <div className="upload-progress">
           <div
-            className="h-full bg-blue-500"
+            className="upload-progress-bar"
             style={{ width: `${globalProg * 100}%` }}
           />
         </div>
