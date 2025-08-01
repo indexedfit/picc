@@ -1,21 +1,35 @@
-import React from "react";
+import React, { useState } from "react";
 import { AlbumGrid } from "./components/AlbumGrid";
 import { UploadButton } from "./components/UploadButton";
-import { useAlbumDoc } from "./yjs/album";
+import { useAlbums } from "./yjs/album";
+import { View, ViewToggle } from "./components/ViewToggle";
+import { AlbumSelector } from "./components/AlbumSelector";
+import { ChatPane } from "./components/ChatPane";
 
 export default function App() {
-  // We keep a single Y.Doc for now; future: multi‑album docs / subdocs.
-  const { album } = useAlbumDoc("all-pictures");
+  const { albums, current, setCurrent, ready } = useAlbums();
+  const [view, setView] = useState<View>("grid");
+
+  if (!ready) return null; // loading IndexedDB
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="p-4 border-b bg-white sticky top-0 z-10 flex items-center justify-between">
-        <h1 className="text-xl">📸 picc.fit</h1>
-        <UploadButton album={album} />
+      <header className="p-4 border-b bg-white sticky top-0 z-10 flex items-center gap-2">
+        <AlbumSelector
+          albums={albums}
+          current={current}
+          onSelect={setCurrent}
+        />
+        <div className="flex-1" />
+        <ViewToggle view={view} setView={setView} />
+        <UploadButton album={current} />
       </header>
+
       <main className="flex-1 overflow-y-auto p-4">
-        <AlbumGrid album={album} />
+        <AlbumGrid album={current} view={view} />
       </main>
+
+      <ChatPane album={current} />
     </div>
   );
 }

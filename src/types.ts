@@ -1,8 +1,14 @@
 export interface PicMeta {
-  cid: string; // Multibase‑encoded CID (e.g. "bafy…")
-  name: string; // Original filename (can be edited later)
-  type: string; // MIME type
-  ts: number; // Unix epoch ms when added
-  w?: number; // width (filled after thumb gen)
-  h?: number; // height
+  cid: string;
+  name: string;
+  type: string;
+  ts: number;
+  albumId: string; // reference to album
+  w?: number;
+  h?: number;
+}
+
+export interface AlbumMeta {
+  id: string;
+  name: string;
 }

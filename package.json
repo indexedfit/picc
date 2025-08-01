@@ -1,6 +1,6 @@
 {
   "name": "picc.fit",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,6 +12,7 @@
     "lucide-react": "^0.536.0",
     "multiformats": "^11.0.2",
     "opfs-tools": "^0.6.2",
+    "qrcode.react": "^3.1.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "y-indexeddb": "^9.0.12",

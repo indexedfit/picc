@@ -1,35 +1,71 @@
 import * as Y from "yjs";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { useEffect, useMemo, useState } from "react";
-import type { PicMeta } from "../types";
+import type { AlbumMeta, PicMeta } from "../types";
 
-export interface AlbumDoc {
-  pics: Y.Array<PicMeta>; // ordered list of pictures
-  chat: Y.Array<{ from: string; msg: string; ts: number }>;
-  doc: Y.Doc;
+interface AlbumsHook {
+  albums: AlbumMeta[];
+  current: AlbumDoc;
+  setCurrent: (album: AlbumDoc) => void;
+  ready: boolean;
 }
 
-/** Create/load a Y.Doc for an album; persist to IndexedDB. */
-export function useAlbumDoc(name: string) {
+export interface AlbumDoc {
+  id: string;
+  meta: AlbumMeta;
+  pics: Y.Array<PicMeta>;
+  chat: Y.Array<{ from: string; msg: string; ts: number }>;
+  doc: Y.Doc; // shared parent doc
+}
+
+export function useAlbums(): AlbumsHook {
   const [ready, setReady] = useState(false);
+  const [currentId, setCurrentId] = useState<string>("all");
 
-  const album = useMemo<AlbumDoc>(() => {
+  const state = useMemo(() => {
     const doc = new Y.Doc();
-    // One top‑level map makes GC easy if we need sub‑docs later
-    const pics = doc.getArray<PicMeta>("pics");
-    const chat = doc.getArray("chat");
+    const albumsMap = doc.getMap<Y.Map<any>>("albums");
 
-    // Temporary pubkey – will be replaced with WASM crypto keypair
-    if (!localStorage.getItem("pubkey")) {
-      localStorage.setItem("pubkey", crypto.randomUUID());
+    // bootstrap default album
+    if (!albumsMap.has("all")) {
+      const meta = new Y.Map<AlbumMeta>();
+      meta.set("info", { id: "all", name: "All Pictures" });
+      meta.set("pics", new Y.Array<PicMeta>());
+      meta.set("chat", new Y.Array());
+      albumsMap.set("all", meta);
     }
 
-    // Persist locally
-    const persistence = new IndexeddbPersistence(`piccfit-${name}`, doc);
+    const persistence = new IndexeddbPersistence("piccfit-root", doc);
     persistence.once("synced", () => setReady(true));
 
-    return { pics, chat, doc };
-  }, [name]);
+    const albumFromKey = (key: string): AlbumDoc => {
+      let rec = albumsMap.get(key);
+      if (!rec) throw new Error("invalid album");
+      return {
+        id: key,
+        meta: rec.get("info"),
+        pics: rec.get("pics"),
+        chat: rec.get("chat"),
+        doc,
+      } as AlbumDoc;
+    };
 
-  return { album, ready } as const;
+    const getAllMeta = (): AlbumMeta[] => {
+      return Array.from(albumsMap.values()).map(
+        (v) => v.get("info") as AlbumMeta,
+      );
+    };
+
+    return { doc, albumsMap, albumFromKey, getAllMeta };
+  }, []);
+
+  const albums = state.getAllMeta();
+  const current = state.albumFromKey(currentId);
+
+  return {
+    albums,
+    current,
+    setCurrent: (a) => setCurrentId(a.id),
+    ready,
+  };
 }

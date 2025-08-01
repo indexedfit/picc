@@ -5,20 +5,28 @@ import type { PicMeta } from "../types";
 interface UploadRequest {
   id: string;
   file: File;
+  albumId: string;
 }
 interface UploadResponse {
   id: string;
   meta: PicMeta;
   thumb: ArrayBuffer;
 }
+interface ProgressMsg {
+  id: string;
+  progress: number;
+}
+
+type Outgoing = UploadResponse | ProgressMsg;
 
 self.onmessage = async (ev: MessageEvent<UploadRequest>) => {
-  const { id, file } = ev.data;
+  const { id, file, albumId } = ev.data;
 
-  // 1️⃣  Hash → CID
   const cid = await fileToCid(file);
 
-  // 2️⃣  Build square thumbnail (256×256)
+  // naive progress: hashing complete → 50%
+  postMessage({ id, progress: 0.5 } as ProgressMsg);
+
   const img = await createImageBitmap(file);
   const size = 256;
   const canvas = new OffscreenCanvas(size, size);
@@ -40,12 +48,11 @@ self.onmessage = async (ev: MessageEvent<UploadRequest>) => {
     name: file.name,
     type: file.type,
     ts: Date.now(),
+    albumId,
     w: img.width,
     h: img.height,
   };
 
-  // 3️⃣  Return meta + thumbnail buffer (transferable!)
-  const response: UploadResponse = { id, meta, thumb: thumbBuf };
-  // Transfer the ArrayBuffer to avoid copying
-  postMessage(response, [thumbBuf]);
+  postMessage({ id, progress: 1 } as ProgressMsg);
+  postMessage({ id, meta, thumb: thumbBuf } as UploadResponse, [thumbBuf]);
 };

@@ -3,23 +3,25 @@ import { write, file as otFile, dir } from "opfs-tools";
 const PICTURES_DIR = "/pictures";
 const THUMBS_DIR = "/thumbs";
 
+let bytesWritten = 0;
+export function getBytesWritten() {
+  return bytesWritten;
+}
+
 export async function ensureDirs() {
   await Promise.all([dir(PICTURES_DIR).create(), dir(THUMBS_DIR).create()]);
 }
 
-/**
- * Stream‑writes the original asset (image / video) into OPFS.
- * Skips if the file already exists to avoid duplicate work.
- */
 export async function savePicture(cid: string, blob: Blob) {
   await ensureDirs();
   const path = `${PICTURES_DIR}/${cid}`;
   const target = otFile(path);
-  if (await target.exists()) return; // idempotent
+  if (await target.exists()) return false; // dedupe
   await write(path, blob.stream(), { overwrite: false });
+  bytesWritten += blob.size;
+  return true;
 }
 
-/** Persist thumbnail JPEG */
 export async function saveThumbnail(cid: string, blob: Blob) {
   await ensureDirs();
   await write(`${THUMBS_DIR}/${cid}.jpg`, blob.stream(), { overwrite: true });
