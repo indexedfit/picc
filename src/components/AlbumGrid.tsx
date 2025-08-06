@@ -83,7 +83,17 @@ interface ThumbProps {
 function Thumb({ pic, selected, onToggle, selectedPics, onOpen }: ThumbProps) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
-    thumbUrl(pic.cid).then(setUrl);
+    let alive = true;
+    let createdUrl: string | null = null;
+    thumbUrl(pic.cid).then((u) => {
+      if (!alive) return;
+      createdUrl = u;
+      setUrl(u);
+    });
+    return () => {
+      alive = false;
+      if (createdUrl) URL.revokeObjectURL(createdUrl);
+    };
   }, [pic.cid]);
   return (
     <div 

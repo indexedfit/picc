@@ -17,14 +17,18 @@ export function Lightbox({
   const pic = pics[index];
 
   useEffect(() => {
-    let mounted = true;
+    let alive = true;
+    let createdUrl: string | null = null;
     setUrl(null);
-    rawUrl(pic.cid).then((u) => mounted && setUrl(u));
+    rawUrl(pic.cid).then((u) => {
+      if (!alive || !u) return;
+      createdUrl = u;
+      setUrl(u);
+    });
     return () => {
-      mounted = false;
-      if (url) URL.revokeObjectURL(url);
+      alive = false;
+      if (createdUrl) URL.revokeObjectURL(createdUrl);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pic.cid]);
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { UploadIcon } from "lucide-react";
 import type { AlbumDoc } from "../yjs/albums";
 import type { PicMeta } from "../types";
@@ -56,6 +56,13 @@ export function UploadButton({ album }: { album: AlbumDoc }) {
     };
     workerRef.current.onerror = console.error;
   }
+
+  useEffect(() => {
+    return () => {
+      workerRef.current?.terminate();
+      workerRef.current = undefined;
+    };
+  }, []);
 
   const handleChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
     const files = Array.from(e.target.files ?? []);

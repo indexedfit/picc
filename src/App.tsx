@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AlbumGrid } from "./components/AlbumGrid";
 import { UploadButton } from "./components/UploadButton";
 import { useAlbums } from "./yjs/albums";
@@ -11,6 +11,15 @@ export default function App() {
   const [view, setView] = useState<View>("grid");
   const [selectedPics, setSelectedPics] = useState<Set<string>>(new Set());
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  
+  useEffect(() => {
+    // Clear selection when album changes
+    if (ready && current) {
+      setSelectedPics(new Set());
+      setViewerIndex(null);
+    }
+  }, [current?.id, ready]);
+  
   if (!ready) return null;
   const pics = current.pics.toArray();
   return (
