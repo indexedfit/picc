@@ -5,7 +5,7 @@ import type { AlbumDoc } from "../yjs/albums";
 interface AlbumSelectorProps {
   albums: AlbumMeta[];
   current: AlbumDoc;
-  onSelect: (a: AlbumDoc) => void;
+  onSelect: (id: string) => void;
 }
 
 export function AlbumSelector({ albums, current, onSelect }: AlbumSelectorProps) {
@@ -39,6 +39,8 @@ export function AlbumSelector({ albums, current, onSelect }: AlbumSelectorProps)
       rec.set("pics", new Y.Array());
       rec.set("chat", new Y.Array());
       albumsMap.set(id, rec);
+      // Immediately switch to it
+      onSelect(id);
     });
     setNewName("");
   };
@@ -49,7 +51,7 @@ export function AlbumSelector({ albums, current, onSelect }: AlbumSelectorProps)
         <div
           key={a.id}
           className={`album-item ${a.id === current.id ? "active" : ""}`}
-          onClick={() => onSelect(a as any)}
+          onClick={() => onSelect(a.id)}
           onDragOver={(e) => {
             e.preventDefault();
             e.currentTarget.classList.add('drag-over');

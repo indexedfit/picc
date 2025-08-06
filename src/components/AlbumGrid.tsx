@@ -8,15 +8,19 @@ interface AlbumGridProps {
   view: View;
   selectedPics: Set<string>;
   onSelectionChange: (selection: Set<string>) => void;
+  onOpen?: (index: number) => void;
 }
 
-export function AlbumGrid({ album, view, selectedPics, onSelectionChange }: AlbumGridProps) {
+export function AlbumGrid({ album, view, selectedPics, onSelectionChange, onOpen }: AlbumGridProps) {
   const [pics, setPics] = useState<PicMeta[]>(album.pics.toArray());
   useEffect(() => {
+    // Update pics immediately when album changes
+    setPics(album.pics.toArray());
+    
     const obs = () => setPics(album.pics.toArray());
     album.pics.observe(obs);
     return () => album.pics.unobserve(obs);
-  }, [album]);
+  }, [album.id]); // Use album.id as dependency to trigger when switching albums
   if (view === "list") {
     return (
       <table className="album-list">
@@ -30,7 +34,7 @@ export function AlbumGrid({ album, view, selectedPics, onSelectionChange }: Albu
   }
   return (
     <div className="album-grid">
-      {pics.map((p) => (
+      {pics.map((p, i) => (
         <Thumb 
           key={p.cid} 
           pic={p} 
@@ -45,6 +49,7 @@ export function AlbumGrid({ album, view, selectedPics, onSelectionChange }: Albu
             onSelectionChange(newSelection);
           }}
           selectedPics={selectedPics}
+          onOpen={() => onOpen?.(i)}
         />
       ))}
     </div>
@@ -72,9 +77,10 @@ interface ThumbProps {
   selected: boolean;
   onToggle: () => void;
   selectedPics: Set<string>;
+  onOpen: () => void;
 }
 
-function Thumb({ pic, selected, onToggle, selectedPics }: ThumbProps) {
+function Thumb({ pic, selected, onToggle, selectedPics, onOpen }: ThumbProps) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     thumbUrl(pic.cid).then(setUrl);
@@ -82,7 +88,12 @@ function Thumb({ pic, selected, onToggle, selectedPics }: ThumbProps) {
   return (
     <div 
       className={`album-grid-item ${selected ? 'selected' : ''}`}
-      onClick={onToggle}
+      onClick={(e) => {
+        // If no selection yet, a click opens; otherwise toggle selection
+        if (selectedPics.size === 0) onOpen();
+        else onToggle();
+      }}
+      onDoubleClick={(e) => onOpen()}
       draggable={selectedPics.size > 0}
       onDragStart={(e) => {
         if (selectedPics.size > 0) {

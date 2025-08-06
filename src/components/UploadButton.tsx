@@ -9,6 +9,7 @@ interface WorkerResponse {
   meta?: PicMeta;
   thumb?: ArrayBuffer;
   progress?: number;
+  needsVideoThumb?: boolean;
 }
 
 export function UploadButton({ album }: { album: AlbumDoc }) {
@@ -30,12 +31,15 @@ export function UploadButton({ album }: { album: AlbumDoc }) {
         return;
       }
       const file = pending.current.get(id);
-      if (!file || !meta || !thumb) return;
+      if (!file || !meta || !thumb && !ev.data.needsVideoThumb) return;
       try {
-        await Promise.all([
-          savePicture(meta.cid, file),
-          saveThumbnail(meta.cid, new Blob([thumb], { type: "image/jpeg" })),
-        ]);
+        await savePicture(meta.cid, file);
+        if (thumb) {
+          await saveThumbnail(meta.cid, new Blob([thumb], { type: "image/jpeg" }));
+        } else if (ev.data.needsVideoThumb) {
+          // Generate a poster from the first decodable frame
+          await generateVideoThumb(file, meta.cid);
+        }
         album.doc.transact(() => {
           if (!album.pics.toArray().some((pm) => pm.cid === meta.cid)) {
             album.pics.push([meta]);
@@ -96,4 +100,48 @@ export function UploadButton({ album }: { album: AlbumDoc }) {
       )}
     </div>
   );
+}
+
+async function generateVideoThumb(file: File, cid: string) {
+  const url = URL.createObjectURL(file);
+  try {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.src = url;
+    // iOS/Safari friendliness
+    await new Promise((res, rej) => {
+      const onErr = () => rej(new Error("video error"));
+      video.addEventListener("loadeddata", res, { once: true });
+      video.addEventListener("error", onErr, { once: true });
+    });
+    // Try seek ~0.1s; fallback is current frame
+    try {
+      await new Promise<void>((res) => {
+        const onSeek = () => { video.removeEventListener("seeked", onSeek); res(); };
+        video.addEventListener("seeked", onSeek);
+        video.currentTime = Math.min(0.1, (video.duration || 0.1) - 0.01);
+      });
+    } catch { /* ignore */ }
+    const size = 512;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d")!;
+    (ctx as any).imageSmoothingEnabled = true;
+    (ctx as any).imageSmoothingQuality = "high";
+    const vw = video.videoWidth || size;
+    const vh = video.videoHeight || size;
+    const r = Math.max(size / vw, size / vh);
+    const w = Math.round(vw * r);
+    const h = Math.round(vh * r);
+    const x = Math.floor((size - w) / 2);
+    const y = Math.floor((size - h) / 2);
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, size, size);
+    ctx.drawImage(video, x, y, w, h);
+    const blob = await new Promise<Blob>((res) => canvas.toBlob((b) => res(b!), "image/jpeg", 0.82));
+    await saveThumbnail(cid, blob);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }

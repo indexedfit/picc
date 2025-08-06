@@ -28,3 +28,11 @@ export async function thumbUrl(cid: string) {
   const file = await f.getOriginFile();
   return file ? URL.createObjectURL(file) : null;
 }
+
+/** Object URL for the original asset (image or video) */
+export async function rawUrl(cid: string) {
+  const f = otFile(`${PICTURES_DIR}/${cid}`);
+  if (!(await f.exists())) return null;
+  const file = await f.getOriginFile();
+  return file ? URL.createObjectURL(file) : null;
+}
